@@ -167,6 +167,7 @@ if __name__ == '__main__':
         if ea == 64:
             cmake_cmd.append('-DIDA_EA_64=TRUE')
 
+        cmake_cmd += args.cmake_args
         cmake_cmd.append('..')
 
         print('CMake command:')

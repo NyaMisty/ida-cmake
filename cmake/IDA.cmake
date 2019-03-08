@@ -35,6 +35,7 @@ set(IDA_SDK               ""    CACHE PATH "Path to IDA SDK"                    
 set(IDA_INSTALL_DIR       ""    CACHE PATH "Install path of IDA"                            )
 set(IDA_VERSION           690   CACHE INT  "IDA Version to build for (e.g. 6.9 is 690)."    )
 set(IDA_ENABLE_QT_SUPPORT OFF   CACHE BOOL "Enable support for building plugins with Qt"    )
+set(IDA_SKIP_ADD_LIBRARY  OFF   CACHE BOOL "skip add_library call for ida plugin build"     )
 
 # =============================================================================================== #
 # General preparation                                                                             #
@@ -159,7 +160,9 @@ function (add_ida_plugin plugin_name)
 
     # Define target
     string(STRIP "${sources}" sources)
-    add_library(${plugin_name} SHARED ${sources})
+    if (!IDA_SKIP_ADD_LIBRARY)
+        add_library(${plugin_name} SHARED ${sources})
+    endif ()
 
     # Compiler specific properties.
     if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "MSVC")

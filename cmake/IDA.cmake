@@ -240,7 +240,7 @@ function (add_ida_plugin plugin_name)
     endif ()
 
     # Link against IDA (or the SDKs libs on Windows).
-    target_link_libraries(${plugin_name} ${ida_libraries})
+    target_link_libraries(${plugin_name} PUBLIC ${ida_libraries})
 
     # Define install rule
     install(TARGETS ${plugin_name} DESTINATION plugins)
@@ -312,6 +312,6 @@ function (add_ida_qt_plugin plugin_name)
                 PROPERTIES 
                 IMPORTED_LOCATION_RELEASE "${IDA_Qt${qtlib}_LIBRARY}")
         endif ()
-        target_link_libraries(${CMAKE_PROJECT_NAME} "Qt5::${qtlib}")
+        target_link_libraries(${CMAKE_PROJECT_NAME} PUBLIC "Qt5::${qtlib}")
     endforeach()
 endfunction ()

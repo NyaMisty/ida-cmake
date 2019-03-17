@@ -3,6 +3,7 @@
 # =============================================================================================== #
 
 set(CMAKE_AUTOMOC ON)
+set(CMAKE_AUTORCC ON)
 set(CMAKE_INCLUDE_CURRENT_DIR ON)
 
 set(ida_qt_libs "Gui;Core;Widgets")

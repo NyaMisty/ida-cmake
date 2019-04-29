@@ -33,7 +33,6 @@ set(IDA_BINARY_64         OFF   CACHE BOOL "Build a 64 bit binary (IDA >= 7.0)" 
 set(IDA_EA_64             OFF   CACHE BOOL "Build for 64 bit IDA (ida64, sizeof(ea_t) == 8)")
 set(IDA_SDK               ""    CACHE PATH "Path to IDA SDK"                                )
 set(IDA_INSTALL_DIR       ""    CACHE PATH "Install path of IDA"                            )
-set(IDA_VERSION           690   CACHE INT  "IDA Version to build for (e.g. 6.9 is 690)."    )
 set(IDA_SKIP_ADD_LIBRARY  OFF   CACHE BOOL "skip add_library call for ida plugin build"     )
 
 set(ida_libraries "")
@@ -41,10 +40,6 @@ set(ida_libraries "")
 # =============================================================================================== #
 # General preparation                                                                             #
 # =============================================================================================== #
-
-if (IDA_VERSION LESS 690)
-    message(FATAL_ERROR "IDA versions below 6.9 are no longer supported.")
-endif ()
 
 # We need to save our path here so we have it available in functions later on.
 set(ida_cmakelist_path ${CMAKE_CURRENT_LIST_DIR})
@@ -199,18 +194,10 @@ function (add_ida_plugin plugin_name)
     # When generating for Visual Studio, 
     # generate user file for convenient debugging support.
     if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "MSVC")
-        if (IDA_VERSION LESS 700)
-            if (IDA_EA_64)
-                set(idaq_exe "idaq64.exe")
-            else ()
-                set(idaq_exe "idaq.exe")
-            endif ()
+        if (IDA_EA_64)
+            set(idaq_exe "ida64.exe")
         else ()
-            if (IDA_EA_64)
-                set(idaq_exe "ida64.exe")
-            else ()
-                set(idaq_exe "ida.exe")
-            endif ()
+            set(idaq_exe "ida.exe")
         endif ()
 
         file(

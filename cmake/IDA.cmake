@@ -103,7 +103,6 @@ function (add_ida_plugin plugin_name)
 
     # Define target
     string(STRIP "${sources}" sources)
-	message("${sources}")
 
 	add_library(${plugin_name} SHARED ${sources})
 

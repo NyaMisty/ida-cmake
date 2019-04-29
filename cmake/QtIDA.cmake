@@ -26,7 +26,6 @@ if (${CMAKE_SYSTEM_NAME} STREQUAL "Darwin" OR ${CMAKE_SYSTEM_NAME} STREQUAL "Lin
 
     foreach(cur_lib ${ida_qt_libs})
         string(REPLACE "@QTLIB@" ${cur_lib} cur_glob_path ${ida_qt_glob_path})
-		message("${cur_glob_path}")
         file(GLOB_RECURSE qtlibpaths ${cur_glob_path})
         # On some platforms, we will find more than one libfile here. 
         # Either one is fine, just pick the first.

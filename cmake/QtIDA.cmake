@@ -2,8 +2,9 @@
 # Qt support                                                                                      #
 # =============================================================================================== #
 
-set(CMAKE_AUTOMOC ON)
-set(CMAKE_AUTORCC ON)
+set(CMAKE_AUTOMOC True)
+set(CMAKE_AUTORCC True)
+
 set(CMAKE_INCLUDE_CURRENT_DIR ON)
 
 set(ida_qt_libs "Gui;Core;Widgets")
@@ -14,7 +15,7 @@ find_package(Qt5Widgets REQUIRED)
 # On unixes, we link against the Qt libs that ship with IDA.
 # On Windows with IDA versions >= 7.0, link against .libs in IDA SDK.
 if (${CMAKE_SYSTEM_NAME} STREQUAL "Darwin" OR ${CMAKE_SYSTEM_NAME} STREQUAL "Linux" OR
-    (${CMAKE_SYSTEM_NAME} STREQUAL "Windows" AND NOT ${IDA_VERSION} LESS 700))
+    (${CMAKE_SYSTEM_NAME} STREQUAL "Windows"))
         
     if (${CMAKE_SYSTEM_NAME} STREQUAL "Darwin")
         set(ida_qt_glob_path "${IDA_INSTALL_DIR}/../Frameworks/Qt@QTLIB@")

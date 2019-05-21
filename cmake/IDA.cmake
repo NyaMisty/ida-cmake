@@ -33,7 +33,6 @@ set(IDA_BINARY_64         OFF   CACHE BOOL "Build a 64 bit binary (IDA >= 7.0)" 
 set(IDA_EA_64             OFF   CACHE BOOL "Build for 64 bit IDA (ida64, sizeof(ea_t) == 8)")
 set(IDA_SDK               ""    CACHE PATH "Path to IDA SDK"                                )
 set(IDA_INSTALL_DIR       ""    CACHE PATH "Install path of IDA"                            )
-set(IDA_SKIP_ADD_LIBRARY  OFF   CACHE BOOL "skip add_library call for ida plugin build"     )
 
 set(ida_libraries "")
 

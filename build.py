@@ -76,7 +76,7 @@ if __name__ == '__main__':
     )
 
     parser.add_argument(
-        '--skip-install', action='store_true', default=False,
+        '--install', action='store_true', default=False,
         help='Do not execute install target'
     )
     parser.add_argument(
@@ -165,7 +165,7 @@ if __name__ == '__main__':
             print('[-] Build failed, giving up.')
             exit()
 
-        if not args.skip_install and args.idaq_path:
+        if not args.install and args.idaq_path:
             cmake_cmd = [
                 cmake_bin,
                 '--build', '.', '--target', 'install',

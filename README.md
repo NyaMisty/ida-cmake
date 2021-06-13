@@ -11,7 +11,7 @@ much user effort.
 ```bash
 git init myplugin
 cd myplugin
-git submodule add https://github.com/zyantific/ida-cmake.git ida-cmake
+git submodule add https://github.com/NyaMisty/ida-cmake.git ida-cmake
 mkdir src
 touch src/myplugin.cpp CMakeLists.txt
 ```

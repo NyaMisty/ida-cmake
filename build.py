@@ -28,6 +28,7 @@ import os
 import errno
 import argparse
 import glob
+import shutil
 
 from subprocess import Popen, PIPE
 from distutils.spawn import find_executable
@@ -118,6 +119,13 @@ if __name__ == '__main__':
     if not cmake_bin:
         print_usage('[-] Unable to find CMake binary')
     
+    output_dir = 'output-{}.{}'.format(*target_version)
+    try:
+        os.mkdir(output_dir)
+    except OSError as e:
+        if e.errno != errno.EEXIST:
+            raise
+    
     #
     # Build targets
     #
@@ -140,7 +148,8 @@ if __name__ == '__main__':
 
         if args.idaq_path:
             cmake_cmd.append('-DIDA_INSTALL_DIR=' + args.idaq_path)
-            cmake_cmd.append('-DCMAKE_INSTALL_PREFIX=' + args.idaq_path)
+        
+        cmake_cmd.append('-DCMAKE_INSTALL_PREFIX=' + os.path.abspath(output_dir))
 
         if ea == 64:
             cmake_cmd.append('-DIDA_EA_64=TRUE')
@@ -159,23 +168,26 @@ if __name__ == '__main__':
         # Build plugin
         cmake_cmd = [
             cmake_bin,
-            '--build', '.',
+            '--build', '.', '--target', 'install',
         ]
         proc = Popen(cmake_cmd, cwd=build_dir)
         if proc.wait() != 0:
             print('[-] Build failed, giving up.')
             exit()
+        
+        # if not args.install and args.idaq_path:
+        #     cmake_cmd = [
+        #         cmake_bin,
+        #         '--build', '.', '--target', 'install',
+        #     ]
 
-        if not args.install and args.idaq_path:
-            cmake_cmd = [
-                cmake_bin,
-                '--build', '.', '--target', 'install',
-            ]
-
-            # Install plugin
-            proc = Popen(cmake_cmd, cwd=build_dir)
-            if proc.wait() != 0:
-                print('[-] Install failed, giving up.')
-                exit()
+        #     # Install plugin
+        #     proc = Popen(cmake_cmd, cwd=build_dir)
+        #     if proc.wait() != 0:
+        #         print('[-] Install failed, giving up.')
+        #         exit()
+    if args.install and args.idaq_path:
+        print('[+] Installing...')
+        shutil.copytree(output_dir, args.idaq_path + '/plugins', dirs_exist_ok=True)
 
     print('[+] Done!')

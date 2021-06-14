@@ -66,8 +66,8 @@ if __name__ == '__main__':
         help='IDA versions to build for (e.g. 6.9).'
     )
     target_args.add_argument(
-        '--idaq-path', type=str, required=False,
-        help='Path with idaq binary, used for installing the plugin. '
+        '--ida-path', type=str, required=False,
+        help='Path of IDA installation, used for installing the plugin. '
              'On unix-like platforms, also required for linkage.'
 
     )
@@ -78,6 +78,10 @@ if __name__ == '__main__':
     )
 
     parser.add_argument(
+        '--release', action='store_true', default=False,
+        help='Do release build'
+    )
+    parser.add_argument(
         '--install', action='store_true', default=False,
         help='Do not execute install target'
     )
@@ -85,11 +89,7 @@ if __name__ == '__main__':
         '--gen', default='', type=str,
         help='Custom generator for CMake (e.g. Ninja)'
     )
-    parser.add_argument(
-        'cmake_args', default='', type=str, nargs=argparse.REMAINDER,
-        help='Additional arguments passed to CMake'
-    )
-    args = parser.parse_args()
+    args, cmake_args = parser.parse_known_args()
 
     def print_usage(error=None):
         parser.print_usage()
@@ -109,8 +109,8 @@ if __name__ == '__main__':
         print('[-] Unsupported platform')
 
     # Unix specific sanity checks
-    if os.name == 'posix' and not args.idaq_path:
-        print_usage('[-] On unix-like platforms, --idaq-path is required.')
+    if os.name == 'posix' and not args.ida_path:
+        print_usage('[-] On unix-like platforms, --ida-path is required.')
 
     #
     # Find tools
@@ -119,7 +119,10 @@ if __name__ == '__main__':
     if not cmake_bin:
         print_usage('[-] Unable to find CMake binary')
     
-    output_dir = 'output-{}.{}'.format(*target_version)
+
+    build_type = 'Release' if args.release else 'Debug'
+
+    output_dir = 'output-{}.{}-{}'.format(*target_version, build_type)
     try:
         os.mkdir(output_dir)
     except OSError as e:
@@ -130,7 +133,7 @@ if __name__ == '__main__':
     # Build targets
     #
     for ea in (args.ea,) if args.ea else (32, 64):
-        build_dir = 'build-{}.{}-{}'.format(*(target_version + (ea,)))
+        build_dir = 'build-{}.{}-{}-{}'.format(*target_version, ea, build_type,)
         try:
             os.mkdir(build_dir)
         except OSError as e:
@@ -143,18 +146,20 @@ if __name__ == '__main__':
             '-DIDA_SDK=' + args.ida_sdk,
             *get_cmake_gen(target_version, args.gen.strip()),
             '-DIDA_VERSION={}{:02}'.format(*target_version),
-            '-DIDA_BINARY_64=' + ('ON' if target_version >= (7, 0) else 'OFF')
+            '-DIDA_BINARY_64=' + ('ON' if target_version >= (7, 0) else 'OFF'),
+            '-DCMAKE_INSTALL_PREFIX=' + os.path.abspath(output_dir),
         ]
 
-        if args.idaq_path:
-            cmake_cmd.append('-DIDA_INSTALL_DIR=' + args.idaq_path)
-        
-        cmake_cmd.append('-DCMAKE_INSTALL_PREFIX=' + os.path.abspath(output_dir))
+        if args.ida_path:
+            cmake_cmd.append('-DIDA_INSTALL_DIR=' + args.ida_path)
 
         if ea == 64:
             cmake_cmd.append('-DIDA_EA_64=TRUE')
 
-        cmake_cmd += args.cmake_args
+        if args.release:
+            cmake_cmd.append('-DCMAKE_BUILD_TYPE=RelWithDebInfo')
+
+        cmake_cmd += cmake_args
         cmake_cmd.append('..')
 
         print('CMake command:')
@@ -170,24 +175,15 @@ if __name__ == '__main__':
             cmake_bin,
             '--build', '.', '--target', 'install',
         ]
+        if args.release:
+            cmake_cmd += ["--config", "RelWithDebInfo"]
         proc = Popen(cmake_cmd, cwd=build_dir)
         if proc.wait() != 0:
             print('[-] Build failed, giving up.')
             exit()
-        
-        # if not args.install and args.idaq_path:
-        #     cmake_cmd = [
-        #         cmake_bin,
-        #         '--build', '.', '--target', 'install',
-        #     ]
-
-        #     # Install plugin
-        #     proc = Popen(cmake_cmd, cwd=build_dir)
-        #     if proc.wait() != 0:
-        #         print('[-] Install failed, giving up.')
-        #         exit()
-    if args.install and args.idaq_path:
+    
+    if args.install and args.ida_path:
         print('[+] Installing...')
-        shutil.copytree(output_dir, args.idaq_path + '/plugins', dirs_exist_ok=True)
+        shutil.copytree(output_dir, args.ida_path + '/plugins', dirs_exist_ok=True)
 
     print('[+] Done!')

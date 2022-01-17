@@ -148,6 +148,7 @@ if __name__ == '__main__':
             '-DIDA_VERSION={}{:02}'.format(*target_version),
             '-DIDA_BINARY_64=' + ('ON' if target_version >= (7, 0) else 'OFF'),
             '-DCMAKE_INSTALL_PREFIX=' + os.path.abspath(output_dir),
+            '-DCMAKE_BUILD_TYPE=' + ("RelWithDebInfo" if args.release else "Debug"),
         ]
 
         if args.ida_path:
@@ -155,9 +156,6 @@ if __name__ == '__main__':
 
         if ea == 64:
             cmake_cmd.append('-DIDA_EA_64=TRUE')
-
-        if args.release:
-            cmake_cmd.append('-DCMAKE_BUILD_TYPE=RelWithDebInfo')
 
         cmake_cmd += cmake_args
         cmake_cmd.append('..')

@@ -43,20 +43,24 @@ set(ida_libraries "")
 # We need to save our path here so we have it available in functions later on.
 set(ida_cmakelist_path ${CMAKE_CURRENT_LIST_DIR})
 
+if (IDA_EA_64)
+    set(ida_lib_path_ea "64")
+else ()
+    set(ida_lib_path_ea "32")
+endif ()
+
+if (IDA_BINARY_64)
+    if(CMAKE_SYSTEM_PROCESSOR MATCHES "^(aarch64|arm64)")
+        set(ida_lib_path_binarch "arm64")
+    else()
+        set(ida_lib_path_binarch "x64")
+    endif()
+else ()
+    set(ida_lib_path_binarch "x86")
+endif ()
+
 # Library dependencies and include pathes
 if (WIN32)
-    if (IDA_EA_64)
-        set(ida_lib_path_ea "64")
-    else ()
-        set(ida_lib_path_ea "32")
-    endif ()
-
-    if (IDA_BINARY_64)
-        set(ida_lib_path_binarch "x64")
-    else ()
-        set(ida_lib_path_binarch "x64")
-    endif ()
-
     # On Windows, we use HR's lib files shipped with the SDK.
     set(IDA_LIB_DIR "${IDA_SDK}/lib/${ida_lib_path_binarch}_win_vc_${ida_lib_path_ea}"
         CACHE PATH "IDA SDK library path" FORCE)
@@ -79,13 +83,33 @@ elseif (UNIX)
         set(CMAKE_CXX_FLAGS "-m32" CACHE STRING "C++ compiler flags" FORCE)
     endif ()
 
-    # On unixoid platforms, we link against IDA directly.
-    if (IDA_EA_64)
-        find_library(IDA_IDA_LIBRARY NAMES "ida64" PATHS ${IDA_INSTALL_DIR} REQUIRED)
-    else ()
-        find_library(IDA_IDA_LIBRARY NAMES "ida" PATHS ${IDA_INSTALL_DIR} REQUIRED)
+    set(IDA_LIB_DIR "${IDA_SDK}/lib/${ida_lib_path_binarch}_mac_clang_${ida_lib_path_ea}"
+        CACHE PATH "IDA SDK library path" FORCE)
+
+    message(STATUS "IDA library path: ${IDA_LIB_DIR}")
+    
+    if (NOT EXISTS ${IDA_LIB_DIR})
+        set(IDA_LIB_DIR NOTFOUND)
     endif ()
+
+    if (IDA_EA_64)
+    find_library(IDA_IDA_LIBRARY NAMES "ida64" PATHS ${IDA_LIB_DIR} REQUIRED)
+    else()
+    find_library(IDA_IDA_LIBRARY NAMES "ida" PATHS ${IDA_LIB_DIR} REQUIRED)
+    endif()
     list(APPEND ida_libraries ${IDA_IDA_LIBRARY})
+    find_library(IDA_PRO_LIBRARY NAMES "pro" PATHS ${IDA_LIB_DIR})
+    if (IDA_PRO_LIBRARY)
+        list(APPEND ida_libraries ${IDA_PRO_LIBRARY})
+    endif ()
+
+    # On unixoid platforms, we link against IDA directly.
+    #if (IDA_EA_64)
+    #    find_library(IDA_IDA_LIBRARY NAMES "ida64" PATHS ${IDA_INSTALL_DIR} REQUIRED)
+    #else ()
+    #    find_library(IDA_IDA_LIBRARY NAMES "ida" PATHS ${IDA_INSTALL_DIR} REQUIRED)
+    #endif ()
+    #list(APPEND ida_libraries ${IDA_IDA_LIBRARY})
 endif ()
 
 set(ida_libraries ${ida_libraries} CACHE INTERNAL "IDA libraries" FORCE)

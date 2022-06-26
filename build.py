@@ -108,10 +108,6 @@ if __name__ == '__main__':
     if os.name not in ('nt', 'posix'):
         print('[-] Unsupported platform')
 
-    # Unix specific sanity checks
-    if os.name == 'posix' and not args.ida_path:
-        print_usage('[-] On unix-like platforms, --ida-path is required.')
-
     #
     # Find tools
     #

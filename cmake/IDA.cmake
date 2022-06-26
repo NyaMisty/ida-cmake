@@ -102,14 +102,6 @@ elseif (UNIX)
     if (IDA_PRO_LIBRARY)
         list(APPEND ida_libraries ${IDA_PRO_LIBRARY})
     endif ()
-
-    # On unixoid platforms, we link against IDA directly.
-    #if (IDA_EA_64)
-    #    find_library(IDA_IDA_LIBRARY NAMES "ida64" PATHS ${IDA_INSTALL_DIR} REQUIRED)
-    #else ()
-    #    find_library(IDA_IDA_LIBRARY NAMES "ida" PATHS ${IDA_INSTALL_DIR} REQUIRED)
-    #endif ()
-    #list(APPEND ida_libraries ${IDA_IDA_LIBRARY})
 endif ()
 
 set(ida_libraries ${ida_libraries} CACHE INTERNAL "IDA libraries" FORCE)

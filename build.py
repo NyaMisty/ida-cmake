@@ -29,6 +29,7 @@ import errno
 import argparse
 import glob
 import shutil
+import re
 
 from subprocess import Popen, PIPE
 from distutils.spawn import find_executable
@@ -62,8 +63,8 @@ if __name__ == '__main__':
         help='Path to the IDA SDK'
     )
     target_args.add_argument(
-        '--target-version', '-t', required=True,
-        help='IDA versions to build for (e.g. 6.9).'
+        '--target-version', '-t', required=False,
+        help='IDA versions to build for (e.g. 6.9). If not supplied, we auto detects it.'
     )
     target_args.add_argument(
         '--ida-path', type=str, required=False,
@@ -98,11 +99,21 @@ if __name__ == '__main__':
         exit()
 
     # Parse target version
-    target_version = args.target_version.strip().split('.')
-    try:
-        target_version = int(target_version[0]), int(target_version[1])
-    except (ValueError, IndexError):
-        print_usage('[-] Invalid version format, expected something like "6.5"')
+    if args.target_version is None:
+        with open(args.ida_sdk + '/allmake.mak', 'r') as f:
+            allmake = f.read()
+        try:
+            verMajor = re.findall(r'\nIDAVER_MAJOR:=(\d+)\n', allmake)[0]
+            verMinor = re.findall(r'\nIDAVER_MINOR:=(\d+)\n', allmake)[0]
+            target_version = (int(verMajor), int(verMinor))
+        except (ValueError, IndexError):
+            print_usage('[-] Failed to parse major version in allmake.mak, please manually specify --target-version')
+    else:
+        target_version = args.target_version.strip().split('.')
+        try:
+            target_version = int(target_version[0]), int(target_version[1])
+        except (ValueError, IndexError):
+            print_usage('[-] Invalid version format, expected something like "6.5"')
 
     # Supported platform?
     if os.name not in ('nt', 'posix'):
@@ -141,7 +152,6 @@ if __name__ == '__main__':
             cmake_bin,
             '-DIDA_SDK=' + args.ida_sdk,
             *get_cmake_gen(target_version, args.gen.strip()),
-            '-DIDA_VERSION={}{:02}'.format(*target_version),
             '-DIDA_BINARY_64=' + ('ON' if target_version >= (7, 0) else 'OFF'),
             '-DCMAKE_INSTALL_PREFIX=' + os.path.abspath(output_dir),
             '-DCMAKE_BUILD_TYPE=' + ("RelWithDebInfo" if args.release else "Debug"),

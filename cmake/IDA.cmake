@@ -43,6 +43,10 @@ set(ida_libraries "")
 # We need to save our path here so we have it available in functions later on.
 set(ida_cmakelist_path ${CMAKE_CURRENT_LIST_DIR})
 
+if (NOT IDA_CURRENT_PROCESSOR)
+    set(IDA_CURRENT_PROCESSOR "${CMAKE_SYSTEM_PROCESSOR}")
+endif()
+
 if (IDA_EA_64)
     set(ida_lib_path_ea "64")
 else ()
@@ -50,7 +54,7 @@ else ()
 endif ()
 
 if (IDA_BINARY_64)
-    if(CMAKE_SYSTEM_PROCESSOR MATCHES "^(aarch64|arm64)")
+    if(IDA_CURRENT_PROCESSOR MATCHES "^(aarch64|arm64)")
         set(ida_lib_path_binarch "arm64")
     else()
         set(ida_lib_path_binarch "x64")

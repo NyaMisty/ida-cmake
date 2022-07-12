@@ -24,6 +24,7 @@
 
 from __future__ import absolute_import, division, print_function, unicode_literals
 
+import sys
 import os
 import errno
 import argparse
@@ -82,6 +83,12 @@ if __name__ == '__main__':
         '--release', action='store_true', default=False,
         help='Do release build'
     )
+
+    parser.add_argument(
+        '--arch', type=str, required=False, choices=["x86_64", "arm64"],
+        help='Specify architecture to build on macOS, defaults to build both'
+    )
+    
     parser.add_argument(
         '--install', action='store_true', default=False,
         help='Do not execute install target'
@@ -129,64 +136,82 @@ if __name__ == '__main__':
 
     build_type = 'Release' if args.release else 'Debug'
 
-    output_dir = 'output-{}.{}-{}'.format(*target_version, build_type)
-    try:
-        os.mkdir(output_dir)
-    except OSError as e:
-        if e.errno != errno.EEXIST:
-            raise
+    platform = {
+        "win32": "win",
+        "darwin": "macos",
+        "linux": "linux",
+    }[sys.platform]
     
     #
     # Build targets
     #
-    for ea in (args.ea,) if args.ea else (32, 64):
-        build_dir = 'build-{}.{}-{}-{}'.format(*target_version, ea, build_type,)
+    for arch in (args.arch, ) if platform != 'macos' or args.arch else ('x86_64', 'arm64'):
+        envtype = platform if platform != 'macos' else platform + "-" + arch
+        triple = '{}.{}-{}-{}'.format(
+            *target_version, 
+            envtype,
+            build_type,
+            )
+        output_dir = 'output-' + triple
         try:
-            os.mkdir(build_dir)
+            os.mkdir(output_dir)
         except OSError as e:
             if e.errno != errno.EEXIST:
                 raise
+        for ea in (args.ea,) if args.ea else (32, 64):
+            build_dir = 'build-{}-{}'.format(triple, ea)
+            try:
+                os.mkdir(build_dir)
+            except OSError as e:
+                if e.errno != errno.EEXIST:
+                    raise
 
-        # Run cmake
-        cmake_cmd = [
-            cmake_bin,
-            '-DIDA_SDK=' + args.ida_sdk,
-            *get_cmake_gen(target_version, args.gen.strip()),
-            '-DIDA_BINARY_64=' + ('ON' if target_version >= (7, 0) else 'OFF'),
-            '-DCMAKE_INSTALL_PREFIX=' + os.path.abspath(output_dir),
-            '-DCMAKE_BUILD_TYPE=' + ("RelWithDebInfo" if args.release else "Debug"),
-        ]
+            # Run cmake
+            cmake_cmd = [
+                cmake_bin,
+                '-DIDA_SDK=' + args.ida_sdk,
+                *get_cmake_gen(target_version, args.gen.strip()),
+                '-DIDA_BINARY_64=' + ('ON' if target_version >= (7, 0) else 'OFF'),
+                '-DCMAKE_INSTALL_PREFIX=' + os.path.abspath(output_dir),
+                '-DCMAKE_BUILD_TYPE=' + ("RelWithDebInfo" if args.release else "Debug"),
+            ]
 
-        if args.ida_path:
-            cmake_cmd.append('-DIDA_INSTALL_DIR=' + args.ida_path)
+            if args.ida_path:
+                cmake_cmd.append('-DIDA_INSTALL_DIR=' + args.ida_path)
 
-        if ea == 64:
-            cmake_cmd.append('-DIDA_EA_64=TRUE')
+            if ea == 64:
+                cmake_cmd.append('-DIDA_EA_64=TRUE')
+            
+            if platform == "macos":
+                cmake_cmd.append('-DIDA_CURRENT_PROCESSOR=' + arch)
 
-        cmake_cmd += cmake_args
-        cmake_cmd.append('..')
+            cmake_cmd += cmake_args
+            cmake_cmd.append('..')
 
-        print('CMake command:')
-        print(' '.join("'%s'" % x if ' ' in x else x for x in cmake_cmd))
+            print('CMake command:')
+            print(' '.join("'%s'" % x if ' ' in x else x for x in cmake_cmd))
 
-        proc = Popen(cmake_cmd, cwd=build_dir)
-        if proc.wait() != 0:
-            print('[-] CMake failed, giving up.')
-            exit()
+            proc = Popen(cmake_cmd, cwd=build_dir)
+            if proc.wait() != 0:
+                print('[-] CMake failed, giving up.')
+                exit()
 
-        # Build plugin
-        cmake_cmd = [
-            cmake_bin,
-            '--build', '.', '--target', 'install',
-        ]
-        if args.release:
-            cmake_cmd += ["--config", "RelWithDebInfo"]
-        proc = Popen(cmake_cmd, cwd=build_dir)
-        if proc.wait() != 0:
-            print('[-] Build failed, giving up.')
-            exit()
-    
+            # Build plugin
+            cmake_cmd = [
+                cmake_bin,
+                '--build', '.', '--target', 'install',
+            ]
+            if args.release:
+                cmake_cmd += ["--config", "RelWithDebInfo"]
+            proc = Popen(cmake_cmd, cwd=build_dir)
+            if proc.wait() != 0:
+                print('[-] Build failed, giving up.')
+                exit()
+        
     if args.install and args.ida_path:
+        if not args.arch and platform == 'macos':
+            print("[-] You should specify arch when installing on macOS")
+            exit()
         print('[+] Installing...')
         shutil.copytree(output_dir, args.ida_path + '/plugins', dirs_exist_ok=True)
 

@@ -63,18 +63,28 @@ else ()
     set(ida_lib_path_binarch "x86")
 endif ()
 
-# Library dependencies and include pathes
+# Library dependencies
 if (WIN32)
     # On Windows, we use HR's lib files shipped with the SDK.
-    set(IDA_LIB_DIR "${IDA_SDK}/lib/${ida_lib_path_binarch}_win_vc_${ida_lib_path_ea}"
+    set(ida_lib_oscompiler "win_vc")
+elseif (UNIX)
+    set(ida_lib_oscompiler "mac_clang")
+endif ()
+
+set(IDA_LIB_DIR "${IDA_SDK}/lib/${ida_lib_path_binarch}_${ida_lib_oscompiler}_${ida_lib_path_ea}"
+    CACHE PATH "IDA SDK library path" FORCE)
+if (NOT EXISTS ${IDA_LIB_DIR})
+    set(IDA_LIB_DIR "${IDA_LIB_DIR}_pro"
         CACHE PATH "IDA SDK library path" FORCE)
+endif ()
+if (NOT EXISTS ${IDA_LIB_DIR})
+    set(IDA_LIB_DIR NOTFOUND)
+endif ()
 
-    message(STATUS "IDA library path: ${IDA_LIB_DIR}")
+message(STATUS "IDA library path: ${IDA_LIB_DIR}")
 
-    if (NOT EXISTS ${IDA_LIB_DIR})
-        set(IDA_LIB_DIR NOTFOUND)
-    endif ()
-
+# include pathes
+if (WIN32)
     find_library(IDA_IDA_LIBRARY NAMES "ida" PATHS ${IDA_LIB_DIR} REQUIRED)
     list(APPEND ida_libraries ${IDA_IDA_LIBRARY})
     find_library(IDA_PRO_LIBRARY NAMES "pro" PATHS ${IDA_LIB_DIR})
@@ -85,15 +95,6 @@ elseif (UNIX)
     if (NOT IDA_BINARY_64)
         set(CMAKE_C_FLAGS   "-m32" CACHE STRING "C compiler flags"   FORCE)
         set(CMAKE_CXX_FLAGS "-m32" CACHE STRING "C++ compiler flags" FORCE)
-    endif ()
-
-    set(IDA_LIB_DIR "${IDA_SDK}/lib/${ida_lib_path_binarch}_mac_clang_${ida_lib_path_ea}"
-        CACHE PATH "IDA SDK library path" FORCE)
-
-    message(STATUS "IDA library path: ${IDA_LIB_DIR}")
-    
-    if (NOT EXISTS ${IDA_LIB_DIR})
-        set(IDA_LIB_DIR NOTFOUND)
     endif ()
 
     if (IDA_EA_64)

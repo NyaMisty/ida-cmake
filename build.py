@@ -103,7 +103,7 @@ if __name__ == '__main__':
         parser.print_usage()
         if error:
             print(error)
-        exit()
+        exit(1)
 
     # Parse target version
     if args.target_version is None:
@@ -194,9 +194,10 @@ if __name__ == '__main__':
             print(' '.join("'%s'" % x if ' ' in x else x for x in cmake_cmd))
 
             proc = Popen(cmake_cmd, cwd=build_dir)
-            if proc.wait() != 0:
+            retcode = proc.wait()
+            if retcode != 0:
                 print('[-] CMake failed, giving up.')
-                exit()
+                exit(retcode)
 
             # Build plugin
             cmake_cmd = [
@@ -206,15 +207,17 @@ if __name__ == '__main__':
             if args.release:
                 cmake_cmd += ["--config", "RelWithDebInfo"]
             proc = Popen(cmake_cmd, cwd=build_dir)
-            if proc.wait() != 0:
+            retcode = proc.wait()
+            if retcode != 0:
                 print('[-] Build failed, giving up.')
-                exit()
+                exit(retcode)
         
     if args.install and args.ida_path:
         if not args.arch and platform == 'macos':
             print("[-] You should specify arch when installing on macOS")
-            exit()
+            exit(1)
         print('[+] Installing...')
         shutil.copytree(output_dir, args.ida_path + '/plugins', dirs_exist_ok=True)
 
     print('[+] Done!')
+    exit(0)

@@ -158,7 +158,9 @@ if __name__ == '__main__':
         except OSError as e:
             if e.errno != errno.EEXIST:
                 raise
-        for ea in (args.ea,) if args.ea else (32, 64):
+
+        ALL_EAS = (32, 64) if target_version[0] < 9 else (64, )
+        for ea in (args.ea,) if args.ea else ALL_EAS:
             build_dir = 'build-{}-{}'.format(triple, ea)
             try:
                 os.mkdir(build_dir)

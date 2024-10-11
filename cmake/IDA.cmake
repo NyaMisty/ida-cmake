@@ -67,8 +67,12 @@ endif ()
 if (WIN32)
     # On Windows, we use HR's lib files shipped with the SDK.
     set(ida_lib_oscompiler "win_vc")
-elseif (UNIX)
+elseif (APPLE)
     set(ida_lib_oscompiler "mac_clang")
+elseif (UNIX AND NOT APPLE)  # Linux
+    set(ida_lib_oscompiler "linux_gcc")
+else()
+    message(FATAL_ERROR "Unsupported platform")
 endif ()
 
 set(IDA_LIB_DIR "${IDA_SDK}/lib/${ida_lib_path_binarch}_${ida_lib_oscompiler}_${ida_lib_path_ea}"
@@ -91,25 +95,44 @@ if (WIN32)
     if (IDA_PRO_LIBRARY)
         list(APPEND ida_libraries ${IDA_PRO_LIBRARY})
     endif ()
-elseif (UNIX)
+elseif (APPLE)  # macOS
     if (NOT IDA_BINARY_64)
         set(CMAKE_C_FLAGS   "-m32" CACHE STRING "C compiler flags"   FORCE)
         set(CMAKE_CXX_FLAGS "-m32" CACHE STRING "C++ compiler flags" FORCE)
     endif ()
 
     if (IDA_EA_64)
-    find_library(IDA_IDA_LIBRARY NAMES "ida64" PATHS ${IDA_LIB_DIR} REQUIRED)
+    find_library(IDA_IDA_LIBRARY NAMES "ida64" "ida" PATHS ${IDA_LIB_DIR} REQUIRED)
     else()
-    find_library(IDA_IDA_LIBRARY NAMES "ida" PATHS ${IDA_LIB_DIR} REQUIRED)
+    find_library(IDA_IDA_LIBRARY NAMES "ida"  "ida32" PATHS ${IDA_LIB_DIR} REQUIRED)
     endif()
     list(APPEND ida_libraries ${IDA_IDA_LIBRARY})
     find_library(IDA_PRO_LIBRARY NAMES "pro" PATHS ${IDA_LIB_DIR})
     if (IDA_PRO_LIBRARY)
         list(APPEND ida_libraries ${IDA_PRO_LIBRARY})
     endif ()
+elseif (UNIX AND NOT APPLE) # Linux
+    if (NOT IDA_BINARY_64)
+    set(CMAKE_C_FLAGS   "-m32" CACHE STRING "C compiler flags"   FORCE)
+    set(CMAKE_CXX_FLAGS "-m32" CACHE STRING "C++ compiler flags" FORCE)
+    endif ()
+
+    if (IDA_EA_64)
+    find_library(IDA_IDA_LIBRARY NAMES "ida64" "ida" PATHS ${IDA_LIB_DIR} REQUIRED)
+    else()
+    find_library(IDA_IDA_LIBRARY NAMES "ida"  "ida32" PATHS ${IDA_LIB_DIR} REQUIRED)
+    endif()
+    list(APPEND ida_libraries ${IDA_IDA_LIBRARY})
+    find_library(IDA_PRO_LIBRARY NAMES "pro" PATHS ${IDA_LIB_DIR})
+    if (IDA_PRO_LIBRARY)
+    list(APPEND ida_libraries ${IDA_PRO_LIBRARY})
+    endif ()
+else()
+    message(FATAL_ERROR "Unsupported platform")
 endif ()
 
 set(ida_libraries ${ida_libraries} CACHE INTERNAL "IDA libraries" FORCE)
+message(STATUS "IDA libraries: ${ida_libraries}")
 
 # =============================================================================================== #
 # Functions for adding IDA plugin targets                                                         #
@@ -125,6 +148,13 @@ function (add_ida_plugin plugin_name)
     string(STRIP "${sources}" sources)
 
 	add_library(${plugin_name} SHARED ${sources})
+
+    # Enable exceptions
+    if(CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
+        add_compile_options(-fexceptions)
+    elseif(MSVC)
+        add_compile_options(/EHa)
+    endif()
 
     # Compiler specific properties.
     if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "MSVC")
